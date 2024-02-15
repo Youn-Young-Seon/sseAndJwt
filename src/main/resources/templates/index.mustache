@@ -1,0 +1,82 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="/css/index.css">
+</head>
+<body>
+    <p class="send">Hey there! What's up</p>
+    <p class="receive">Checking out iOS7 you know..</p>
+    <p class="send">Check out this bubble!</p>
+    <p class="receive">It's pretty cool…</p>
+    <p class="receive">Not gonna lie!</p>
+    <p class="send">Yeah it's pure CSS &amp; HTML</p>
+    <p class="receive">Wow that's impressive. But what's even more impressive is that this bubble is really high.</p>
+    <p class="send">Yeah it's pure CSS &amp; HTML</p>
+    <p class="receive">Wow that's impressive. But what's even more impressive is that this bubble is really high.</p>
+    <p class="send">Yeah it's pure CSS &amp; HTML</p>
+    <p class="receive">Wow that's impressive. But what's even more impressive is that this bubble is really high.</p>
+
+    <form class="msger-inputarea">
+        <input type="text" class="msger-input" placeholder="Enter your message..." />
+        <input type="button" class="msger-send-btn" value="Send" />
+    </form>
+</body>
+</html>
+<script>
+    const eventSource = new EventSource('/sse');
+    const $sendButton = document.querySelector('input[type=button]');
+    const $body = document.querySelector('body');
+    const $form = document.querySelector('form');
+    const $inputText = document.querySelector('input[type=text]');
+
+    $form.addEventListener('submit', (e) => {
+        e.preventDefault();
+    });
+
+    function sendFunc(e) {
+        if(e.type === 'keydown' && e.keyCode !== 13){
+            return;
+        }
+        let message = document.querySelector('input[type=text]').value;
+        let data = {
+            message
+        };
+
+        fetch('/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            $inputText.value = '';
+            window.scrollTo(0, document.body.scrollHeight);
+            return;
+        });
+    }
+
+    $sendButton.addEventListener('click', sendFunc);
+    $inputText.addEventListener('keydown', sendFunc);
+
+    eventSource.addEventListener('message', (e) => {
+        let $p = document.createElement('p');
+        let { data, sessionId } = JSON.parse(e.data);
+        let message = JSON.parse(data);
+
+        console.log(document.cookie);
+        console.log(sessionId);
+
+        $p.textContent = message.message;
+
+        $body.insertBefore($p, $form);
+    });
+
+    eventSource.onerror = (e) => {
+        console.error(e);
+    };
+</script>
