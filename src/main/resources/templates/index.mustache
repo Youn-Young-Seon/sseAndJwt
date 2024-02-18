@@ -64,12 +64,13 @@
     $inputText.addEventListener('keydown', sendFunc);
 
     eventSource.addEventListener('message', (e) => {
+        console.log(e.data);
         let $p = document.createElement('p');
-        let { data, sessionId } = JSON.parse(e.data);
-        let message = JSON.parse(data);
+//      let { data, sessionId } = JSON.parse(e.data);
+        let message = JSON.parse(e.data);
 
-        console.log(document.cookie);
-        console.log(sessionId);
+//        console.log(document.cookie);
+//        console.log(sessionId);
 
         $p.textContent = message.message;
 
