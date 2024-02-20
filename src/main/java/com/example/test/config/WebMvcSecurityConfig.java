@@ -2,7 +2,7 @@ package com.example.test.config;
 
 //@Configuration
 //@EnableWebSecurity
-public class WebSecurityConfig {
+public class WebMvcSecurityConfig {
 
 //    @Bean
 //    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {

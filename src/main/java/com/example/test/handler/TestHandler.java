@@ -23,9 +23,9 @@ public class TestHandler {
     }
 
     public Mono<ServerResponse> getSse(ServerRequest request) {
-        Flux<ServerSentEvent<String>> sseFlux = sink
-                .asFlux()
-                .map(message -> ServerSentEvent.builder(message)
+        Flux<ServerSentEvent<String>> sseFlux = sink.asFlux()
+                .map(message -> ServerSentEvent
+                        .builder(message)
                         .build())
                 .doOnCancel(() -> {
                     sink.asFlux().blockLast();
