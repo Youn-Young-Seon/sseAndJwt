@@ -1,7 +1,9 @@
 package com.example.test.jwt;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -14,30 +16,46 @@ import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
-public class JwtAuthenticationManager implements AuthenticationManager {
+public class JwtAuthenticationManager implements ReactiveAuthenticationManager {
 
     private final JwtSupport jwtSupport;
     private final ReactiveUserDetailsService users;
 
+
     @Override
-    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+    public Mono<Authentication> authenticate(Authentication authentication) {
         return Mono.justOrEmpty(authentication)
                 .filter(auth -> auth instanceof BearerToken)
                 .cast(BearerToken.class)
                 .flatMap(jwt -> Mono.fromCallable(() -> validate(jwt)))
-                .onErrorMap(error -> new InvalidBearerToken(error.getMessage()))
-                .block(); // 블로킹 방식으로 결과를 얻음
+                .onErrorMap(error -> new InvalidBearerToken(error.getMessage()));
     }
 
     private Authentication validate(BearerToken token) {
         String username = jwtSupport.getId(token);
-        UserDetails user = Objects.requireNonNull(users.findByUsername(username).block());
-
-        if (jwtSupport.isValid(token, user)) {
-            return new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword(), user.getAuthorities());
-        }
-
-        throw new IllegalArgumentException("Token is not valid");
+        return (Authentication) Objects.requireNonNull(users.findByUsername(username))
+                .map(user -> new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword(), user.getAuthorities()))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Token is not valid")));
     }
 
+//    @Override
+//    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+//        return Mono.justOrEmpty(authentication)
+//                .filter(auth -> auth instanceof BearerToken)
+//                .cast(BearerToken.class)
+//                .flatMap(jwt -> Mono.fromCallable(() -> validate(jwt)))
+//                .onErrorMap(error -> new InvalidBearerToken(error.getMessage()))
+//                .block(); // 블로킹 방식으로 결과를 얻음
+
+//    }
+//    private Authentication validate(BearerToken token) {
+//        String username = jwtSupport.getId(token);
+//        UserDetails user = Objects.requireNonNull(users.findByUsername(username).block());
+//
+//        if (jwtSupport.isValid(token, user)) {
+//            return new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword(), user.getAuthorities());
+//        }
+//
+//        throw new IllegalArgumentException("Token is not valid");
+//    }
 }

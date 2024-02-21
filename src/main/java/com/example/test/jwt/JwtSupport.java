@@ -3,6 +3,7 @@ package com.example.test.jwt;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -14,8 +15,9 @@ import java.util.Date;
 
 @Component
 public class JwtSupport {
-    private final byte[] keyBytes = "aaaaaaaaaabbbbbbbbbbccccccccccdd12321312312sdadasd12312312312313asdsrf1245wevf243a".getBytes();
-    private final SecretKey key = Keys.hmacShaKeyFor(keyBytes);
+//    private final byte[] keyBytes = "1234567890".getBytes();
+//    private final SecretKey key = Keys.hmacShaKeyFor(keyBytes);
+    private final SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
     private final JwtParser parser = Jwts.parserBuilder().setSigningKey(key).build();
 
     public BearerToken generate(String username) {
