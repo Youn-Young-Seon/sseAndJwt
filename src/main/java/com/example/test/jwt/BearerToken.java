@@ -15,12 +15,12 @@ public class BearerToken extends AbstractAuthenticationToken {
     }
 
     @Override
-    public Object getCredentials() {
+    public String getCredentials() {
         return value;
     }
 
     @Override
-    public Object getPrincipal() {
+    public String getPrincipal() {
         return value;
     }
 }

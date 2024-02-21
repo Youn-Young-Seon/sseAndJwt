@@ -1,18 +1,13 @@
 package com.example.test.jwt;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-
-import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
@@ -21,41 +16,41 @@ public class JwtAuthenticationManager implements ReactiveAuthenticationManager {
     private final JwtSupport jwtSupport;
     private final ReactiveUserDetailsService users;
 
-
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
         return Mono.justOrEmpty(authentication)
-                .filter(auth -> auth instanceof BearerToken)
                 .cast(BearerToken.class)
-                .flatMap(jwt -> Mono.fromCallable(() -> validate(jwt)))
-                .onErrorMap(error -> new InvalidBearerToken(error.getMessage()));
+                .flatMap(auth -> {
+                    String id = jwtSupport.getId(auth.getCredentials());
+                    Mono<UserDetails> byUsername = users.findByUsername(id).defaultIfEmpty(null);
+
+                    return byUsername.<Authentication>flatMap(u -> {
+                        if (u.getUsername() == null) {
+                            Mono.error(new IllegalArgumentException("User not found in auth manager"));
+                        }
+                        if (jwtSupport.isValid(u, auth.getCredentials())) {
+                            return Mono.justOrEmpty(new UsernamePasswordAuthenticationToken(u.getUsername(), u.getPassword(), u.getAuthorities()));
+                        }
+                        Mono.error(new IllegalArgumentException("Invalid/ Expired token"));
+                        return Mono.justOrEmpty(new UsernamePasswordAuthenticationToken(u.getUsername(), u.getPassword(), u.getAuthorities()));
+                    });
+                });
     }
 
-    private Authentication validate(BearerToken token) {
-        String username = jwtSupport.getId(token);
-        return (Authentication) Objects.requireNonNull(users.findByUsername(username))
-                .map(user -> new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword(), user.getAuthorities()))
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Token is not valid")));
-    }
 
 //    @Override
-//    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+//    public Mono<Authentication> authenticate(Authentication authentication) {
 //        return Mono.justOrEmpty(authentication)
 //                .filter(auth -> auth instanceof BearerToken)
 //                .cast(BearerToken.class)
 //                .flatMap(jwt -> Mono.fromCallable(() -> validate(jwt)))
-//                .onErrorMap(error -> new InvalidBearerToken(error.getMessage()))
-//                .block(); // 블로킹 방식으로 결과를 얻음
-
+//                .onErrorMap(error -> new InvalidBearerToken(error.getMessage()));
 //    }
+
 //    private Authentication validate(BearerToken token) {
 //        String username = jwtSupport.getId(token);
-//        UserDetails user = Objects.requireNonNull(users.findByUsername(username).block());
-//
-//        if (jwtSupport.isValid(token, user)) {
-//            return new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword(), user.getAuthorities());
-//        }
-//
-//        throw new IllegalArgumentException("Token is not valid");
+//        return (Authentication) users.findByUsername(username)
+//                .map(user -> new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword(), user.getAuthorities()))
+//                .switchIfEmpty(Mono.error(new IllegalArgumentException("Token is not valid")));
 //    }
 }

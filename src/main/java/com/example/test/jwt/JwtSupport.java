@@ -31,12 +31,12 @@ public class JwtSupport {
         return new BearerToken(compactToken);
     }
 
-    public String getId(BearerToken token) {
-        return parser.parseClaimsJws(token.getValue()).getBody().getSubject();
+    public String getId(String token) {
+        return parser.parseClaimsJws(token).getBody().getSubject();
     }
 
-    public boolean isValid(BearerToken token, UserDetails user) {
-        Claims claims = parser.parseClaimsJws(token.getValue()).getBody();
+    public boolean isValid(UserDetails user, String token) {
+        Claims claims = parser.parseClaimsJws(token).getBody();
         boolean unexpired = claims.getExpiration().after(Date.from(Instant.now()));
 
         return unexpired && claims.getSubject().equals(user != null ? user.getUsername() : null);

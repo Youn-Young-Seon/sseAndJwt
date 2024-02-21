@@ -7,7 +7,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -44,8 +43,8 @@ public class WebFluxSecurityConfig {
                                                          JwtServerAuthenticationConverter converter,
                                                          JwtAuthenticationManager authManager) {
 
-        AuthenticationWebFilter filter = new AuthenticationWebFilter((ReactiveAuthenticationManager) authManager);
-        filter.setServerAuthenticationConverter(converter);
+        AuthenticationWebFilter jwtFilter = new AuthenticationWebFilter(authManager);
+        jwtFilter.setServerAuthenticationConverter(converter);
 
         http.exceptionHandling(auth -> auth
                 .authenticationEntryPoint((exchange, ex) -> Mono.fromRunnable(() -> {
@@ -55,11 +54,12 @@ public class WebFluxSecurityConfig {
         );
 
         http.authorizeExchange(auth -> {
+            auth.pathMatchers("/css/**", "/js/**").permitAll();
             auth.pathMatchers(HttpMethod.POST, "/login").permitAll();
             auth.anyExchange().authenticated();
         });
 
-        http.addFilterAt(filter, SecurityWebFiltersOrder.AUTHENTICATION);
+        http.addFilterAt(jwtFilter, SecurityWebFiltersOrder.AUTHENTICATION);
 
         http.httpBasic(ServerHttpSecurity.HttpBasicSpec::disable);
         http.csrf(ServerHttpSecurity.CsrfSpec::disable);
