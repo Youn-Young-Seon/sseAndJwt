@@ -7,9 +7,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,6 +19,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
+import org.springframework.security.web.server.authentication.RedirectServerAuthenticationEntryPoint;
 import reactor.core.publisher.Mono;
 
 @Configuration
@@ -54,7 +57,7 @@ public class WebFluxSecurityConfig {
         );
 
         http.authorizeExchange(auth -> {
-            auth.pathMatchers("/css/**", "/js/**").permitAll();
+            auth.pathMatchers("/css/**", "/js/**", "/favicon.ico", "/login").permitAll();
             auth.pathMatchers(HttpMethod.POST, "/login").permitAll();
             auth.anyExchange().authenticated();
         });

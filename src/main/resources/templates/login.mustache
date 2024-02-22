@@ -1,0 +1,54 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+    <link rel="stylesheet" href="/css/login.css">
+    <title>Document</title>
+</head>
+<body>
+    <div class="container">
+        <form class="form-signin" method="post" action="/login">
+            <h2 class="form-signin-heading">Please sign in</h2>
+            <p>
+                <label for="username" class="sr-only">Username</label>
+                <input type="text" id="username" name="id" class="form-control" placeholder="Username" required="" autofocus="">
+            </p>
+            <p>
+                <label for="password" class="sr-only">Password</label>
+                <input type="password" id="password" name="pw" class="form-control" placeholder="Password" required="">
+            </p>
+            <input name="_csrf" type="hidden" value="a2b4af0f-816a-4766-a749-f40abdd810fe">
+            <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+        </form>
+    </div>
+    <script !src="">
+        const $sendButton = document.querySelector('button[type=submit]');
+
+        $sendButton.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            const id = document.querySelector('input[name="id"]').value;
+            const password = document.querySelector('input[name="pw"]').value;
+
+            let data = {
+                id,
+                password
+            };
+
+            fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+//            .then(response => {
+//                return;
+//            });
+        });
+    </script>
+</body>
+</html>

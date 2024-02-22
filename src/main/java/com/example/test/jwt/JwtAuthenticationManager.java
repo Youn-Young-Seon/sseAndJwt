@@ -36,21 +36,4 @@ public class JwtAuthenticationManager implements ReactiveAuthenticationManager {
                     });
                 });
     }
-
-
-//    @Override
-//    public Mono<Authentication> authenticate(Authentication authentication) {
-//        return Mono.justOrEmpty(authentication)
-//                .filter(auth -> auth instanceof BearerToken)
-//                .cast(BearerToken.class)
-//                .flatMap(jwt -> Mono.fromCallable(() -> validate(jwt)))
-//                .onErrorMap(error -> new InvalidBearerToken(error.getMessage()));
-//    }
-
-//    private Authentication validate(BearerToken token) {
-//        String username = jwtSupport.getId(token);
-//        return (Authentication) users.findByUsername(username)
-//                .map(user -> new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword(), user.getAuthorities()))
-//                .switchIfEmpty(Mono.error(new IllegalArgumentException("Token is not valid")));
-//    }
 }

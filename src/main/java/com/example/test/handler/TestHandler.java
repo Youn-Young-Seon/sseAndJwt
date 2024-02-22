@@ -2,6 +2,7 @@ package com.example.test.handler;
 
 
 import com.example.test.dto.User;
+import com.example.test.jwt.BearerToken;
 import com.example.test.jwt.JwtSupport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -11,7 +12,6 @@ import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
@@ -31,10 +31,6 @@ public class TestHandler {
         this.users = users;
         this.jwtSupport = jwtSupport;
         this.passwordEncoder = passwordEncoder;
-    }
-
-    public Mono<ServerResponse> getMono(ServerRequest request) {
-        return ServerResponse.ok().body(Mono.just("test"), String.class);
     }
 
     public Mono<ServerResponse> getSse(ServerRequest request) {
@@ -58,26 +54,28 @@ public class TestHandler {
     }
 
     public Mono<ServerResponse> auth(ServerRequest request) {
-        return ServerResponse.ok().body("ok", String.class);
+        return ServerResponse.ok().body(Mono.just("ok"), String.class);
     }
 
+//    public Mono<ServerResponse> loginPage(ServerRequest request) {
+//        return ServerResponse.ok().contentType(MediaType.TEXT_HTML).render("login");
+//    }
+
     public Mono<ServerResponse> login(ServerRequest request) {
-        Mono<User> userMono = request.bodyToMono(User.class);
+        return request.bodyToMono(User.class)
+                .flatMap(user -> {
+                    Mono<UserDetails> foundUser = users.findByUsername(user.getId()).defaultIfEmpty(null);
 
-        userMono.flatMap(user -> {
-            Mono<UserDetails> foundUser = users.findByUsername(user.getId()).defaultIfEmpty(null);
-
-            return foundUser.flatMap(u -> {
-                if (u != null) {
-                    if (passwordEncoder.matches(user.getPassword(), u.getPassword())) {
-                        return ServerResponse.ok().body(jwtSupport.generate("test"), String.class);
-                    }
-                    return ServerResponse.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials", String.class);
-                }
-                return ServerResponse.status(HttpStatus.UNAUTHORIZED).body("User not found. Please register", String.class);
-            });
-        });
-
-        return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal Server Error", String.class);
+                    return foundUser.flatMap(u -> {
+                        if (u != null) {
+                            if (passwordEncoder.matches(user.getPassword(), u.getPassword())) {
+                                return Mono.just(jwtSupport.generate("test"))
+                                        .flatMap(token -> ServerResponse.ok().bodyValue(token.getValue()));
+                            }
+                            return ServerResponse.status(HttpStatus.UNAUTHORIZED).bodyValue("Invalid credentials");
+                        }
+                        return ServerResponse.status(HttpStatus.UNAUTHORIZED).bodyValue("User not found. Please register");
+                    });
+                });
     }
 }
