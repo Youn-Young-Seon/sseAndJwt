@@ -21,8 +21,6 @@ public class JwtServerAuthenticationConverter implements ServerAuthenticationCon
                 )
                 .filter(authHeader -> authHeader.startsWith("Bearer "))
                 .map(authHeader -> authHeader.substring(7))
-//                .map(JwtServerAuthenticationConverter::createBearerToken)
-                .map(BearerToken::new)
-                ;
+                .map(BearerToken::new);
     }
 }

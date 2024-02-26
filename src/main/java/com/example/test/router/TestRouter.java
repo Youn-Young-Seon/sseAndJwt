@@ -12,10 +12,12 @@ public class TestRouter {
     @Bean
     public RouterFunction<?> routeTest(TestHandler handler) {
         return RouterFunctions.route()
-                .GET("/sse", handler::getSse)
-                .GET("/auth", handler::auth)
-                .POST("/add", handler::add)
-                .POST("/login", handler::login)
+                .path("/api", build -> build
+                        .GET("/sse", handler::getSse)
+                        .GET("/auth", handler::auth)
+                        .POST("/add", handler::add)
+                        .POST("/login", handler::login)
+                )
                 .build();
     }
 }

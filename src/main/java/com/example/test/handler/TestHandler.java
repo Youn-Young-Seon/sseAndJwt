@@ -1,8 +1,9 @@
 package com.example.test.handler;
 
 
+import com.example.test.dto.MessageDto;
+import com.example.test.dto.ResponseDto;
 import com.example.test.dto.User;
-import com.example.test.jwt.BearerToken;
 import com.example.test.jwt.JwtSupport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,7 +21,7 @@ import reactor.core.publisher.Sinks;
 
 @Component
 public class TestHandler {
-    private final Sinks.Many<String> sink;
+    private final Sinks.Many<MessageDto> sink;
     private final ReactiveUserDetailsService users;
     private final JwtSupport jwtSupport;
     private final PasswordEncoder passwordEncoder;
@@ -34,9 +35,10 @@ public class TestHandler {
     }
 
     public Mono<ServerResponse> getSse(ServerRequest request) {
-        Flux<ServerSentEvent<String>> sseFlux = sink.asFlux()
-                .map(message -> ServerSentEvent
-                        .builder(message)
+        Flux<ServerSentEvent<MessageDto>> sseFlux = sink.asFlux()
+                .map(messageData -> ServerSentEvent
+                        .builder(messageData)
+                        .event("message")
                         .build())
                 .doOnCancel(() -> {
                     sink.asFlux().blockLast();
@@ -48,18 +50,20 @@ public class TestHandler {
     }
 
     public Mono<ServerResponse> add(ServerRequest request) {
-        return request.bodyToMono(String.class)
+        return request.bodyToMono(MessageDto.class)
                 .doOnNext(sink::tryEmitNext)
                 .then(ServerResponse.ok().body(Mono.just("success"), String.class));
     }
 
     public Mono<ServerResponse> auth(ServerRequest request) {
-        return ServerResponse.ok().body(Mono.just("ok"), String.class);
-    }
+        String authorizationToken = request.headers().header("Authorization").get(0)
+                .replace("Bearer ", "");
+        String id = jwtSupport.getId(authorizationToken);
+        User user = new User();
+        user.setId(id);
 
-//    public Mono<ServerResponse> loginPage(ServerRequest request) {
-//        return ServerResponse.ok().contentType(MediaType.TEXT_HTML).render("login");
-//    }
+        return ServerResponse.ok().body(Mono.just(new ResponseDto<User>(user, HttpStatus.OK)), User.class);
+    }
 
     public Mono<ServerResponse> login(ServerRequest request) {
         return request.bodyToMono(User.class)
@@ -69,12 +73,21 @@ public class TestHandler {
                     return foundUser.flatMap(u -> {
                         if (u != null) {
                             if (passwordEncoder.matches(user.getPassword(), u.getPassword())) {
-                                return Mono.just(jwtSupport.generate("test"))
-                                        .flatMap(token -> ServerResponse.ok().bodyValue(token.getValue()));
-                            }
-                            return ServerResponse.status(HttpStatus.UNAUTHORIZED).bodyValue("Invalid credentials");
+                                return Mono.just(jwtSupport.generate(user.getId()))
+                                        .flatMap(token -> {
+                                            return ServerResponse.ok()
+                                                .header("Authorization", "Bearer " + token.getCredentials())
+                                                .bodyValue(new ResponseDto<User>(user, HttpStatus.OK));
+                                            }
+                                        );
                         }
-                        return ServerResponse.status(HttpStatus.UNAUTHORIZED).bodyValue("User not found. Please register");
+                        return ServerResponse
+                                .status(HttpStatus.UNAUTHORIZED)
+                                .bodyValue(Mono.just("Invalid credentials"));
+                        }
+                        return ServerResponse
+                                .status(HttpStatus.UNAUTHORIZED)
+                                .bodyValue("User not found. Please register");
                     });
                 });
     }
