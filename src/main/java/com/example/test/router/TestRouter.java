@@ -1,24 +1,24 @@
 package com.example.test.router;
 
-import com.example.test.handler.TestHandler;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.reactive.function.server.RouterFunction;
-import org.springframework.web.reactive.function.server.RouterFunctions;
+//import com.example.test.handler.TestHandler;
+//import org.springframework.context.annotation.Bean;
+//import org.springframework.context.annotation.Configuration;
+//import org.springframework.web.reactive.function.server.RouterFunction;
+//import org.springframework.web.reactive.function.server.RouterFunctions;
 
-@Configuration
+//@Configuration
 public class TestRouter {
 
-    @Bean
-    public RouterFunction<?> routeTest(TestHandler handler) {
-        return RouterFunctions.route()
-                .path("/api", build -> build
-                        .GET("/sse", handler::getSse)
-                        .GET("/auth", handler::auth)
-                        .POST("/add", handler::add)
-                        .POST("/login", handler::login)
-                )
-                .build();
-    }
+//    @Bean
+//    public RouterFunction<?> routeTest(TestHandler handler) {
+//        return RouterFunctions.route()
+//                .path("/api", build -> build
+//                        .GET("/sse", handler::getSse)
+//                        .GET("/auth", handler::auth)
+//                        .POST("/add", handler::add)
+//                        .POST("/login", handler::login)
+//                )
+//                .build();
+//    }
 }
 
