@@ -23,6 +23,10 @@ public class SseEmitters {
         return uuid;
     }
 
+    public void remove(String sessionId) {
+        emitters.remove(sessionId);
+    }
+
     private void emitterConfig(String uuid, SseEmitter sseEmitter) {
 
         sseEmitter.onCompletion(() -> {

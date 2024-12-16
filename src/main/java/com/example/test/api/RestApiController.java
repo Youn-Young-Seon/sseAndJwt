@@ -2,16 +2,18 @@ package com.example.test.api;
 
 import com.example.test.config.SseEmitters;
 import com.example.test.dto.AddResponseDto;
+import com.example.test.dto.MessageDto;
+import com.example.test.dto.ResponseDto;
+import com.example.test.dto.User;
+import com.example.test.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.*;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.servlet.http.Cookie;
@@ -27,10 +29,13 @@ import java.util.concurrent.Executors;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/api")
 public class RestApiController {
 
 //    private final RestTemplate restTemplate;
     private final SseEmitters sseEmitters;
+    private final JwtUtil jwtUtil;
+    private final AuthenticationManager authenticationManager;
 
     @PostMapping("/async")
     public ResponseEntity<?> async() {
@@ -58,6 +63,31 @@ public class RestApiController {
         return ResponseEntity.ok("{ \"success\": \"Async task initiated. Result will be sent to the callback URL.\" }");
     }
 
+    @GetMapping(value = "/auth")
+    public ResponseEntity<?> auth(HttpServletRequest request) {
+        String authorizationToken = request.getHeader("Authorization").replace("Bearer ", "");
+        String id = jwtUtil.generateToken(authorizationToken);
+        User user = new User();
+        user.setId(id);
+
+        return ResponseEntity.ok().body(new ResponseDto<User>(user, HttpStatus.OK));
+    }
+
+    @PostMapping(value = "/login")
+    public ResponseEntity<?> login(@RequestBody User user) {
+
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(user.getId(), user.getPassword())
+            );
+
+            String token = jwtUtil.generateToken(user.getId());
+            return ResponseEntity.ok().header("Authorization", "Bearer " + token).body(new ResponseDto<User>(user, HttpStatus.OK));
+        } catch (AuthenticationException e) {
+            throw new RuntimeException("Invalid username or password");
+        }
+    }
+
     @GetMapping(value = "/sse", produces = "text/event-stream;charset=utf-8")
     public SseEmitter makeSse(HttpServletResponse response) {
         SseEmitter sseEmitter = new SseEmitter(Long.MAX_VALUE);
@@ -67,19 +97,9 @@ public class RestApiController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<?> addMessage(@RequestBody String data, HttpServletRequest request) throws IOException {
+    public ResponseEntity<?> addMessage(@RequestBody MessageDto messageDto) throws IOException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         Map<String, SseEmitter> emitters = sseEmitters.getEmitters();
-        String selectCookie = null;
-
-//        Cookie[] cookies = request.getCookies();
-//        for (Cookie cookie : cookies) {
-//            if (cookie.getName().equals("sessionId")) {
-//                selectCookie = cookie.getValue();
-//            }
-//        }
-
-        AddResponseDto addResponseDto = new AddResponseDto(data, selectCookie);
 
         executorService.execute(() -> {
             for (String s : emitters.keySet()) {
@@ -88,15 +108,16 @@ public class RestApiController {
                     sseEmitter.send(SseEmitter.event()
                             .id(String.valueOf(UUID.randomUUID()))
                             .name("message")
-                            .data(addResponseDto)
+                            .data(messageDto)
                             .build());
                 } catch (IOException e) {
                     log.info("thread: " + Thread.currentThread().getName());
+                    sseEmitters.remove(messageDto.getId());
                 }
             }
         });
         executorService.shutdown();
 
-        return ResponseEntity.ok(addResponseDto);
+        return ResponseEntity.ok(messageDto);
     }
 }
